@@ -7,9 +7,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Compiler MesDepensesDH
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Recuperer le projet
@@ -23,14 +28,27 @@ jobs:
 
       - name: Installer Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Installer Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Compiler APK
-        run: gradle assembleDebug --stacktrace
+      - name: Afficher les versions
+        run: |
+          java -version
+          gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
+      - name: Compiler APK Android
+        run: |
+          gradle assembleDebug --stacktrace --no-daemon
+
+      - name: Verifier APK
+        run: |
+          ls -lh app/build/outputs/apk/debug/
 
       - name: Recuperer APK
         uses: actions/upload-artifact@v4
@@ -38,3 +56,4 @@ jobs:
           name: MesDepensesDH-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
