@@ -68,5 +68,30 @@ class MainActivity:Activity() {
  private fun showStats() {page("Statistiques du mois");root.addView(button("Retour") { showHome() });val items=store.all().filter { it.day.startsWith(month()) };val total=items.sumOf { it.amount };root.addView(label("Total : ${money(total)}",20f));items.groupBy { it.category }.mapValues { (_,v)->v.sumOf { it.amount } }.toList().sortedByDescending { it.second }.forEach { (cat,value)->val b=box();b.addView(label("$cat : ${money(value)} (${if(total>0)(100*value/total).toInt() else 0}%)"));val p=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);p.max=100;p.progress=if(total>0)(100*value/total).toInt() else 0;b.addView(p) } }
  private fun showSettings() {page("Paramètres");root.addView(button("Retour") { showHome() });val b=box();b.addView(label("Budget mensuel (DH)"));val amount=input("Budget",prefs.getFloat("budget",1998f).toString());amount.inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL;b.addView(amount);b.addView(button("Enregistrer le budget") { val v=amount.text.toString().replace(',','.').toFloatOrNull();if(v!=null&&v>0){prefs.edit().putFloat("budget",v).apply();showHome()}else Toast.makeText(this,"Budget invalide",Toast.LENGTH_SHORT).show() });val c=box();c.addView(label("Ajouter une catégorie"));val name=input("Nom de la catégorie");c.addView(name);c.addView(button("Ajouter") { val n=name.text.toString().trim();if(n.isNotBlank()&&!n.contains("|")){val old=prefs.getString("custom","")!!;prefs.edit().putString("custom",if(old.isEmpty())n else "$old|$n").apply();Toast.makeText(this,"Catégorie ajoutée",Toast.LENGTH_SHORT).show();name.setText("")} });root.addView(label("Les données sont conservées sur cet appareil. Aucun compte ni accès Internet requis.",14f)) }
  private fun exportCsv() { val intent=Intent(Intent.ACTION_CREATE_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE);type="text/csv";putExtra(Intent.EXTRA_TITLE,"depenses_${today()}.csv") };startActivityForResult(intent,12) }
- override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?) {super.onActivityResult(requestCode,resultCode,data);if(requestCode==12&&resultCode==RESULT_OK){data?.data?.let { uri->try { contentResolver.openOutputStream(uri)?.use { stream->OutputStreamWriter(stream,Charsets.UTF_8).use { w->w.write("\uFEFFDate;Catégorie;Montant (DH);Commentaire\n");store.all().forEach { e->fun q(s:String)="\""+s.replace("\"","\"\"")+"\"";w.write("${q(e.day)};${q(e.category)};${e.amount};${q(e.note)}\n") } } };Toast.makeText(this,"Export CSV terminé",Toast.LENGTH_LONG).show() }catch(e:Exception){Toast.makeText(this,"Erreur d'export : ${e.message}",Toast.LENGTH_LONG).show()} } } }
+ private fun csvQuote(value: String): String {
+  return "\"" + value.replace("\"", "\"\"") + "\""
+ }
+
+ @Deprecated("Uses legacy activity result API")
+ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+  super.onActivityResult(requestCode, resultCode, data)
+  if (requestCode != 12 || resultCode != RESULT_OK) return
+  val uri = data?.data ?: return
+  try {
+   val stream = contentResolver.openOutputStream(uri)
+    ?: throw java.io.IOException("Impossible d'ouvrir le fichier")
+   OutputStreamWriter(stream, Charsets.UTF_8).use { writer ->
+    writer.write("\uFEFFDate;Catégorie;Montant (DH);Commentaire\n")
+    store.all().forEach { expense ->
+     writer.write(
+      "${csvQuote(expense.day)};${csvQuote(expense.category)};" +
+      "${expense.amount};${csvQuote(expense.note)}\n"
+     )
+    }
+   }
+   Toast.makeText(this, "Export CSV terminé", Toast.LENGTH_LONG).show()
+  } catch (e: Exception) {
+   Toast.makeText(this, "Erreur d'export : ${e.message}", Toast.LENGTH_LONG).show()
+  }
+ }
 }
