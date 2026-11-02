@@ -1,6 +1,4 @@
-
 name: Compiler APK Android
-
 on:
   workflow_dispatch:
   push:
