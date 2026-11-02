@@ -76,7 +76,7 @@ class MainActivity : Activity() {
     }
     private fun button(label: String, action: () -> Unit): Button = Button(this).apply {
         text = label; isAllCaps = false; textSize = 15f
-        setTextColor(background); background = shape(emerald, 15)
+        setTextColor(this@MainActivity.background); background = shape(emerald, 15)
         setOnClickListener { action() }
         val params = LinearLayout.LayoutParams(-1, dp(50))
         params.bottomMargin = dp(10); layoutParams = params
@@ -89,7 +89,7 @@ class MainActivity : Activity() {
         root.addView(this, params)
     }
     private fun page(title: String, subtitle: String = ""): Unit {
-        val scroll = ScrollView(this).apply { setBackgroundColor(background); fillViewport = true }
+        val scroll = ScrollView(this).apply { setBackgroundColor(this@MainActivity.background); isFillViewport = true }
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(25), dp(20), dp(35))
         }
